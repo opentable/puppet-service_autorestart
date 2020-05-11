@@ -30,8 +30,8 @@ Puppet::ResourceApi.register_type(
       desc: 'Command to run on failure. This only matters if you use a "failure_action" with an "action" of "run_command". Note: Windows uses the same command for each failure, you can not specify a unique command per-failure.',
     },
     failure_actions: {
-      type: 'Array[Struct[{action => Enum["noop", "reboot", "restart", "run_command"], delay => Integer[0]} ] ]',
-      desc: 'List of actions to perform when the service fails. This takes two parameters "action", the type of action to execute. Action "noop" means take no action. Action "reboot" means reboot the computer display the "reboot_message" prior to rebooting. Action "restart" means restart the service. Action "run_command" executes the "command" when the service fails. The "delay" parameter is measure in milliseconds.',
+      type: 'Array[Struct[{action => Enum["noop", "reboot", "restart", "run_command"], delay => Integer[0]} ], 0, 3]',
+      desc: 'List of actions to perform when the service fails. This takes two parameters "action", the type of action to execute. Action "noop" means take no action. Action "reboot" means reboot the computer display the "reboot_message" prior to rebooting. Action "restart" means restart the service. Action "run_command" executes the "command" when the service fails. The "delay" parameter is measure in milliseconds. The maximum size of this array is 3.',
     },
   },
   autorequire: {
