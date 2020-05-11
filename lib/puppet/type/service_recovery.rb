@@ -1,3 +1,5 @@
+require 'puppet/resource_api'
+
 Puppet::ResourceApi.register_type(
   name: 'service_recovery',
   desc: <<-EOS,
