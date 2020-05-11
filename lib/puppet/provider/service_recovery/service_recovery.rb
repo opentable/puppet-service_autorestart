@@ -25,7 +25,7 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::
 
   def get(context)
     # first ask sc for a list of services
-    query = powershell.execute('sc.exe query')
+    query = powershell.execute('sc.exe query')[:stdout]
     services = query.lines.each_with_object([]) do |line, memo|
       # skip lines that aren't names of services
       # format:
@@ -39,7 +39,7 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::
     # for each service, ask sc for information on its service recovery (aka failure)
     # configuration
     services.map do |service_name|
-      qfailure = powershell.execute("sc.exe qfailure #{service_name}")
+      qfailure = powershell.execute("sc.exe qfailure #{service_name}")[:stdout]
       # TODO: document the idempotency of specifying "noop" for failure actions
       #   - FYI it will result in loss of idempotency because the sc out put doesn't
       #     give us a "noop" placeholder
@@ -90,3 +90,4 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::
     context.info("service_recover[#{name}] = delete")
   end
 end
+o
