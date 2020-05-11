@@ -23,14 +23,14 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::
                                          debug: debug_output)
   end
 
-  def get(context)
+  def get(_context)
     # first ask sc for a list of services
     query = powershell.execute('sc.exe query')[:stdout]
     services = query.lines.each_with_object([]) do |line, memo|
       # skip lines that aren't names of services
       # format:
       #  SERVICE_NAME: <service_name>\r\n
-      if match = line.match(%r{SERVICE_NAME: (.*)\s*})
+      if (match = line.match(%r{SERVICE_NAME: (.*)\s*}))
         service_name = match.captures[0]
         memo << service_name
       end
@@ -44,27 +44,27 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::
       #   - FYI it will result in loss of idempotency because the sc out put doesn't
       #     give us a "noop" placeholder
       recovery = qfailure.lines.each_with_object({}) do |line, memo|
-        if match = line.match(%r{\s*RESET_PERIOD (in seconds)    : (.*)\s*})
+        if (match = line.match(%r{\s*RESET_PERIOD (in seconds)    : (.*)\s*}))
           memo[:reset_period] = match.captures[0]
-        elsif match = line.match(%r{\s*REBOOT_MESSAGE               : (.*)\s*})
+        elsif (match = line.match(%r{\s*REBOOT_MESSAGE               : (.*)\s*}))
           memo[:reboot_message] = match.captures[0]
-        elsif match = line.match(%r{\s*COMMAND_LINE                 : (.*)\s*})
+        elsif (match = line.match(%r{\s*COMMAND_LINE                 : (.*)\s*}))
           memo[:command] = match.captures[0]
-        elsif match = line.match(%r{.*RESTART -- Delay = (\d+) milliseconds.\s*})
+        elsif (match = line.match(%r{.*RESTART -- Delay = (\d+) milliseconds.\s*}))
           delay_ms = match.captures[0]
           failure_actions = memo.fetch(:failure_actions, [])
           failure_actions << {
             action: 'restart',
             delay: delay_ms,
           }
-        elsif match = line.match(%r{.*RUN PROCESS -- Delay = (\d+) milliseconds.\s*})
+        elsif (match = line.match(%r{.*RUN PROCESS -- Delay = (\d+) milliseconds.\s*}))
           delay_ms = match.captures[0]
           failure_actions = memo.fetch(:failure_actions, [])
           failure_actions << {
             action: 'run_command',
             delay: delay_ms,
           }
-        elsif match = line.match(%r{.*REBOOT -- Delay = (\d+) milliseconds.\s*})
+        elsif (match = line.match(%r{.*REBOOT -- Delay = (\d+) milliseconds.\s*}))
           delay_ms = match.captures[0]
           failure_actions = memo.fetch(:failure_actions, [])
           failure_actions << {

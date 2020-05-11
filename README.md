@@ -35,9 +35,10 @@ If there's more that they should know about, though, this is the place to mentio
 
 ### Setup Requirements **OPTIONAL**
 
-If your module requires anything extra before setting up (pluginsync enabled, another module, etc.), mention it here.
+TODO:
+- Resource (`puppetlabs/resource_api`) API if using Puppet 5 or older
+- pwshlib (`puppetlabs/pwshlib`)
 
-If your most recent release breaks compatibility or requires particular steps for upgrading, you might want to include an additional "Upgrading" section here.
 
 ### Beginning with service_control
 
