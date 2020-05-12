@@ -1,81 +1,23 @@
 require 'puppet/resource_api/simple_provider'
-require 'ruby-pwsh'
 
 # class to provide service recovery for windows
 class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::SimpleProvider
-  # def initialize
-  #   # in normal types/providers this would be:
-  #   #   commands powershell: 'powershell.exe'
-  #   @powershell = Puppet::Provider::Command.new(name,
-  #                                               path,
-  #                                               Puppet::Util, Puppet::Util::Execution,
-  #                                               { :failonfail => true,
-  #                                                 :combine => true,
-  #                                                 :custom_environment => {} })
-  # end
+  REGEX_RESET_PERIOD = Regexp.new(%r{\s*RESET_PERIOD (in seconds)    : (.*)\s*})
+  REGEX_REBOOT_MESSAGE = Regexp.new(%r{\s*REBOOT_MESSAGE               : (.*)\s*})
+  REGEX_COMMAND_LINE = Regexp.new(%r{\s*COMMAND_LINE                 : (.*)\s*})
+  REGEX_RESTART = Regexp.new(%r{.*RESTART -- Delay = (\d+) milliseconds.\s*})
+  REGEX_RUN_PROCESS = Regexp.new(%r{.*RUN PROCESS -- Delay = (\d+) milliseconds.\s*})
+  REGEX_REBOOT = Regexp.new(%r{.*REBOOT -- Delay = (\d+) milliseconds.\s*})
 
-  def powershell
-    return @powershell if @powershell
-    debug_output = Puppet::Util::Log.level == :debug
-    # TODO: Allow you to specify an alternate path, either to pwsh generally or a specific pwsh path.
-    @powershell = Pwsh::Manager.instance(Pwsh::Manager.powershell_path,
-                                         Pwsh::Manager.powershell_args,
-                                         debug: debug_output)
-  end
-
-  def get(_context)
-    # first ask sc for a list of services
-    query = powershell.execute('sc.exe query')[:stdout]
-    services = query.lines.each_with_object([]) do |line, memo|
-      # skip lines that aren't names of services
-      # format:
-      #  SERVICE_NAME: <service_name>\r\n
-      if (match = line.match(%r{SERVICE_NAME: (.*)\s*}))
-        service_name = match.captures[0]
-        memo << service_name
-      end
-    end
+  #######################
+  # public methods inherited from Resource API
+  def get(context)
+    # first get a list of services from sc
+    services = services_list(context)
 
     # for each service, ask sc for information on its service recovery (aka failure)
     # configuration
-    services.map do |service_name|
-      qfailure = powershell.execute("sc.exe qfailure #{service_name}")[:stdout]
-      # TODO: document the idempotency of specifying "noop" for failure actions
-      #   - FYI it will result in loss of idempotency because the sc out put doesn't
-      #     give us a "noop" placeholder
-      recovery = qfailure.lines.each_with_object({}) do |line, memo|
-        if (match = line.match(%r{\s*RESET_PERIOD (in seconds)    : (.*)\s*}))
-          memo[:reset_period] = match.captures[0]
-        elsif (match = line.match(%r{\s*REBOOT_MESSAGE               : (.*)\s*}))
-          memo[:reboot_message] = match.captures[0]
-        elsif (match = line.match(%r{\s*COMMAND_LINE                 : (.*)\s*}))
-          memo[:command] = match.captures[0]
-        elsif (match = line.match(%r{.*RESTART -- Delay = (\d+) milliseconds.\s*}))
-          delay_ms = match.captures[0]
-          failure_actions = memo.fetch(:failure_actions, [])
-          failure_actions << {
-            action: 'restart',
-            delay: delay_ms,
-          }
-        elsif (match = line.match(%r{.*RUN PROCESS -- Delay = (\d+) milliseconds.\s*}))
-          delay_ms = match.captures[0]
-          failure_actions = memo.fetch(:failure_actions, [])
-          failure_actions << {
-            action: 'run_command',
-            delay: delay_ms,
-          }
-        elsif (match = line.match(%r{.*REBOOT -- Delay = (\d+) milliseconds.\s*}))
-          delay_ms = match.captures[0]
-          failure_actions = memo.fetch(:failure_actions, [])
-          failure_actions << {
-            action: 'reboot',
-            delay: delay_ms,
-          }
-        end
-      end
-      recovery[:name] = service_name
-      recovery[:ensure] = 'present'
-    end
+    services.map { |service_name| service_recovery_instance(context, service_name) }
   end
 
   def create(context, name, should)
@@ -89,5 +31,76 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery < Puppet::ResourceApi::
   def delete(context, name)
     context.info("service_recover[#{name}] = delete")
   end
+
+  #######################
+  # private method
+  def sc(*args)
+    unless @sc
+      @sc = Puppet::Provider::Command.new('sc',
+                                          'sc.exe',
+                                          Puppet::Util,
+                                          Puppet::Util::Execution,
+                                          failonfail: true,
+                                          combine: true,
+                                          custom_environment: {})
+    end
+    @sc.execute(*args)
+  end
+
+  def services_list(_context)
+    return @services_list if @services_list
+    query = sc('query')
+    @services_list = query.lines.each_with_object([]) do |line, memo|
+      # skip lines that aren't names of services
+      # format:
+      #  SERVICE_NAME: <service_name>\r\n
+      if (match = line.match(%r{SERVICE_NAME: (.*)\s*}))
+        service_name = match.captures[0]
+        memo << service_name.strip
+      end
+    end
+  end
+
+  def service_recovery_instance(_context, service)
+    # ask sc about failure/recovery information for this service
+    qfailure = sc('qfailure', service)
+
+    # TODO: document the idempotency of specifying "noop" for failure actions
+    #   - FYI it will result in loss of idempotency because the sc out put doesn't
+    #     give us a "noop" placeholder
+    recovery = {
+      name: service,
+      ensure: 'present',
+    }
+    qfailure.lines.each_with_object(recovery) do |line, memo|
+      if (match = REGEX_RESET_PERIOD.match(line))
+        memo[:reset_period] = match.captures[0]
+      elsif (match = REGEX_REBOOT_MESSAGE.match(line))
+        memo[:reboot_message] = match.captures[0]
+      elsif (match = REGEX_COMMAND_LINE.match(line))
+        memo[:command] = match.captures[0]
+      elsif (match = REGEX_RESTART.match(line))
+        delay_ms = match.captures[0]
+        failure_actions = memo.fetch(:failure_actions, [])
+        failure_actions << {
+          action: 'restart',
+          delay: delay_ms,
+        }
+      elsif (match = REGEX_RUN_PROCESS.match(line))
+        delay_ms = match.captures[0]
+        failure_actions = memo.fetch(:failure_actions, [])
+        failure_actions << {
+          action: 'run_command',
+          delay: delay_ms,
+        }
+      elsif (match = REGEX_REBOOT.match(line))
+        delay_ms = match.captures[0]
+        failure_actions = memo.fetch(:failure_actions, [])
+        failure_actions << {
+          action: 'reboot',
+          delay: delay_ms,
+        }
+      end
+    end
+  end
 end
-o

@@ -24,11 +24,11 @@ Puppet::ResourceApi.register_type(
       default: 8640,
     },
     reboot_message: {
-      type: 'String',
+      type: 'Optional[String]',
       desc: 'Message to display before rebooting the computer. This only matters if you use a "failure_action" with an "action" of "reboot".',
     },
     command: {
-      type: 'String',
+      type: 'Optional[String]',
       desc: <<-EOS,
         Command to run on failure. This only matters if you use a "failure_action" with an
         "action" of "run_command". Note: Windows uses the same command for each failure,

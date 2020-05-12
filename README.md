@@ -37,7 +37,6 @@ If there's more that they should know about, though, this is the place to mentio
 
 TODO:
 - Resource (`puppetlabs/resource_api`) API if using Puppet 5 or older
-- pwshlib (`puppetlabs/pwshlib`)
 
 
 ### Beginning with service_control
