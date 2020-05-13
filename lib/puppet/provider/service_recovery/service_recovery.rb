@@ -141,7 +141,7 @@
 # class to provide service recovery for windows
 class Puppet::Provider::ServiceRecovery::ServiceRecovery
   def initialize
-    @regex_reset_period = Regexp.new(%r{\s*RESET_PERIOD (in seconds)    : (.*)\s*})
+    @regex_reset_period = Regexp.new(%r{\s*RESET_PERIOD \(in seconds\)    : (.*)\s*})
     @regex_reboot_message = Regexp.new(%r{\s*REBOOT_MESSAGE               : (.*)\s*})
     @regex_command_line = Regexp.new(%r{\s*COMMAND_LINE                 : (.*)\s*})
     @regex_restart = Regexp.new(%r{.*RESTART -- Delay = (\d+) milliseconds.\s*})
@@ -171,37 +171,59 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
       # changes[:is] contains the "cached" state of the resource returned by get()
       # changes[:should] contains the desired state declared in the Puppet DSL
       #
-      is = change.key?(:is) ? change[:is] : service_recovery_instance(context, name)
+      # is = change.key?(:is) ? change[:is] : service_recovery_instance(context, name)
+      is = service_recovery_instance(context, name)
       should = change[:should]
       next unless should
 
+      context.info("is=#{is} should=#{should}")
+
       context.updating(name) do
         arguments = []
-        if should[:reset_period] && is[:reset_period] != should[:reset_period]
-          arguments << "reset=#{should[:reset_period]}"
+        reset_changed = false
+        failure_actions_changed = false
+        if should[:reset_period] && (is[:reset_period] != should[:reset_period])
           context.attribute_changed(name,
                                     'reset_period',
                                     is[:reset_period],
                                     should[:reset_period])
+          reset_changed = true
         end
-        if should[:reboot_message] && is[:reboot_message] != should[:reboot_message]
-          arguments << "reboot=\"#{should[:reboot_message]}\""
+        if should[:reboot_message] && (is[:reboot_message] != should[:reboot_message])
           context.attribute_changed(name,
                                     'reboot_message',
                                     is[:reboot_message],
                                     should[:reboot_message])
+          arguments << "reboot=\"#{should[:reboot_message]}\""
         end
-        if should[:command] && is[:command] != should[:command]
-          arguments << "command=\"#{should[:command]}\""
+        if should[:command] && (is[:command] != should[:command])
           context.attribute_changed(name,
                                     'command',
                                     is[:command],
                                     should[:command])
+          arguments << "command=\"#{should[:command]}\""
         end
-        if should[:failure_actions] && is[:failure_actions] != should[:failure_actions]
+        # if either of these attributes change, we need to specify both on CLI
+        if should[:failure_actions] && (is[:failure_actions] != should[:failure_actions])
+          context.attribute_changed(name,
+                                    'failure_actions',
+                                    is[:failure_actions],
+                                    should[:failure_actions])
+          failure_actions_changed = true
+        end
+
+        # sc.exe requires that both 'actions' and 'reset' be sent at the same
+        # time, so if we change one we need to send both on the CLI
+        if reset_changed || failure_actions_changed
+          # reset arg
+          arguments << "reset=#{should[:reset_period]}"
+
+          # actions arg
           actions_arg = 'actions='
-          should[:failure_actions].each do |fa|
-            action = case fa[:action]
+          should[:failure_actions].each do |value|
+            context.info("failure value=#{value} value_class=#{value.class.name}")
+            # note: hash keys are NOT symbolized
+            action = case value['action']
                      when 'noop'
                        ''
                      when 'restart'
@@ -211,12 +233,11 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
                      when 'run_command'
                        'run'
                      end
-            delay = fa[:delay]
+            delay = value['delay']
+            context.info("action=#{action} delay=#{delay}")
             actions_arg += "#{action}/#{delay}/"
-            context.attribute_changed('failure_actions',
-                                      is[:failure_actions],
-                                      should[:failure_actions])
           end
+          context.info("actions_arg=#{actions_arg}")
           arguments << actions_arg
         end
 
@@ -259,7 +280,7 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
     end
   end
 
-  def service_recovery_instance(_context, service)
+  def service_recovery_instance(context, service)
     # ask sc about failure/recovery information for this service
     qfailure = sc('qfailure', service)
 
@@ -271,29 +292,43 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
     }
     qfailure.lines.each_with_object(recovery) do |line, memo|
       if !memo.key?(:reset_period) && (match = @regex_reset_period.match(line))
-        memo[:reset_period] = match.captures[0]
+        context.info("line = '#{line}' matched reset_period")
+        memo[:reset_period] = match.captures[0].to_i
       elsif !memo.key?(:reboot_message) && (match = @regex_reboot_message.match(line))
+        context.info("line = '#{line}' matched reboot message")
         memo[:reboot_message] = match.captures[0]
       elsif !memo.key?(:command) && (match = @regex_command_line.match(line))
+        context.info("line = '#{line}' matched command")
         memo[:command] = match.captures[0]
       elsif (match = @regex_restart.match(line))
+        context.info("line = '#{line}' matched restart")
         delay_ms = match.captures[0].to_i
-        memo.fetch(:failure_actions, []) << {
-          action: 'restart',
-          delay: delay_ms,
+        memo[:failure_actions] = [] unless memo.key?(:failure_actions)
+        # note: hash keys are NOT symbolized
+        memo[:failure_actions] << {
+          'action' => 'restart',
+          'delay' => delay_ms,
         }
       elsif (match = @regex_run_process.match(line))
+        context.info("line = '#{line}' matched run process")
         delay_ms = match.captures[0].to_i
-        memo.fetch(:failure_actions, []) << {
-          action: 'run_command',
-          delay: delay_ms,
+        memo[:failure_actions] = [] unless memo.key?(:failure_actions)
+        # note: hash keys are NOT symbolized
+        memo[:failure_actions] << {
+          'action' => 'run_command',
+          'delay' => delay_ms,
         }
       elsif (match = @regex_reboot.match(line))
+        context.info("line = '#{line}' matched reboot")
         delay_ms = match.captures[0].to_i
-        memo.fetch(:failure_actions, []) << {
-          action: 'reboot',
-          delay: delay_ms,
+        memo[:failure_actions] = [] unless memo.key?(:failure_actions)
+        # note: hash keys are NOT symbolized
+        memo[:failure_actions] << {
+          'action' => 'reboot',
+          'delay' => delay_ms,
         }
+      else
+        context.info("line = '#{line}' didn't match anything")
       end
     end
   end
