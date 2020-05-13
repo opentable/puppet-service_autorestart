@@ -179,19 +179,22 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
         arguments = []
         if should[:reset_period] && is[:reset_period] != should[:reset_period]
           arguments << "reset=#{should[:reset_period]}"
-          context.attribute_changed('reset_period',
+          context.attribute_changed(name,
+                                    'reset_period',
                                     is[:reset_period],
                                     should[:reset_period])
         end
         if should[:reboot_message] && is[:reboot_message] != should[:reboot_message]
           arguments << "reboot=\"#{should[:reboot_message]}\""
-          context.attribute_changed('reboot_message',
+          context.attribute_changed(name,
+                                    'reboot_message',
                                     is[:reboot_message],
                                     should[:reboot_message])
         end
         if should[:command] && is[:command] != should[:command]
           arguments << "command=\"#{should[:command]}\""
-          context.attribute_changed('command',
+          context.attribute_changed(name,
+                                    'command',
                                     is[:command],
                                     should[:command])
         end
