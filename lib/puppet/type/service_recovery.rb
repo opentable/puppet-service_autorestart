@@ -115,7 +115,7 @@ Puppet::ResourceApi.register_type(
   EOS
   # specify this simple_get_filter so we don't have to query for _all_ instances
   # of the service recovery resources (slow)
-  features: ['simple_get_filter'],
+  features: ['simple_get_filter', 'supports_noop'],
   attributes: {
     name: {
       type:      'String[1]',

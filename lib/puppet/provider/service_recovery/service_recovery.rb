@@ -165,43 +165,66 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
     names.map { |service_name| service_recovery_instance(context, service_name) }
   end
 
+  # make bulk changes to the resources
   def set(context, changes, noop: false)
-    context.info("service_recover[#{name}] = create ... #{should}")
-    return if noop
     changes.each do |name, change|
-      # is = change.key?(:is) ? change[:is] : service_recovery_instance(context, name)
+      # changes[:is] contains the "cached" state of the resource returned by get()
+      # changes[:should] contains the desired state declared in the Puppet DSL
+      #
+      is = change.key?(:is) ? change[:is] : service_recovery_instance(context, name)
       should = change[:should]
       next unless should
 
-      arguments = []
-      if should[:reset_period]
-        arguments << ('reset=' + should[:reset_period])
-      end
-      if should[:reset_period]
-        arguments << ('reboot="' + should[:reset_period] + '"')
-      end
-      if should[:command]
-        arguments << ('command="' + should[:command] + '"')
-      end
-      if should[:failure_actions]
-        actions_arg = 'actions='
-        should[:failure_actions].each do |fa|
-          action = case fa[:action]
-                   when 'noop'
-                     ''
-                   when 'restart'
-                     'restart'
-                   when 'reboot'
-                     'reboot'
-                   when 'run_command'
-                     'run'
-                   end
-          delay = fa[:delay]
-          actions_arg += "#{action}/#{delay}/"
+      context.updating(name) do
+        arguments = []
+        if should[:reset_period] && is[:reset_period] != should[:reset_period]
+          arguments << ('reset=' + should[:reset_period])
+          context.attribute_changed('reset_period',
+                                    is[:reset_period],
+                                    should[:reset_period])
         end
-        arguments << actions_arg
+        if should[:reboot_message] && is[:reboot_message] != should[:reboot_message]
+          arguments << ('reboot="' + should[:reboot_message] + '"')
+          context.attribute_changed('reboot_message',
+                                    is[:reboot_message],
+                                    should[:reboot_message])
+        end
+        if should[:command] && is[:command] != should[:command]
+          arguments << ('command="' + should[:command] + '"')
+          context.attribute_changed('command',
+                                    is[:command],
+                                    should[:command])
+        end
+        if should[:failure_actions] && is[:failure_actions] != should[:failure_actions]
+          actions_arg = 'actions='
+          should[:failure_actions].each do |fa|
+            action = case fa[:action]
+                     when 'noop'
+                       ''
+                     when 'restart'
+                       'restart'
+                     when 'reboot'
+                       'reboot'
+                     when 'run_command'
+                       'run'
+                     end
+            delay = fa[:delay]
+            actions_arg += "#{action}/#{delay}/"
+
+            context.attribute_changed('failure_actions',
+                                      is[:failure_actions],
+                                      should[:failure_actions])
+          end
+          arguments << actions_arg
+        end
+
+        # only report changes if noop
+        if noop
+          context.info("service_recover[#{name}] would have run: sc.exe failure #{name} #{arguments.join(' ')}")
+        else
+          sc(['failure', name] + arguments)
+        end
       end
-      sc(['failure', name] + arguments)
     end
   end
 
@@ -243,8 +266,6 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
     #     give us a "noop" placeholder
     recovery = {
       name: service,
-      ensure: 'present',
-      failure_actions: [],
     }
     qfailure.lines.each_with_object(recovery) do |line, memo|
       if !memo.key?(:reset_period) && (match = @regex_reset_period.match(line))
@@ -255,19 +276,19 @@ class Puppet::Provider::ServiceRecovery::ServiceRecovery
         memo[:command] = match.captures[0]
       elsif (match = @regex_restart.match(line))
         delay_ms = match.captures[0].to_i
-        memo[:failure_actions] << {
+        memo.fetch(:failure_actions, []) << {
           action: 'restart',
           delay: delay_ms,
         }
       elsif (match = @regex_run_process.match(line))
         delay_ms = match.captures[0].to_i
-        memo[:failure_actions] << {
+        memo.fetch(:failure_actions, []) << {
           action: 'run_command',
           delay: delay_ms,
         }
       elsif (match = @regex_reboot.match(line))
         delay_ms = match.captures[0].to_i
-        memo[:failure_actions] << {
+        memo.fetch(:failure_actions, []) << {
           action: 'reboot',
           delay: delay_ms,
         }
