@@ -1,6 +1,5 @@
 # @summary Manages the auto-restart (aka service recovery) for a Windows service.
 #
-#
 # @param [Enum['noop', 'reboot', 'restart', 'run_command']] action
 #   - 'noop' = take no action.
 #   - 'reboot' = reboot the computer, displaying `reboot_message` before rebooting.
