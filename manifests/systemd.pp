@@ -7,7 +7,7 @@
 #   The value of the `Reset=` setting for the SystemD service.
 #   https://www.freedesktop.org/software/systemd/man/systemd.service.html#Restart=
 #
-# @param [String] delay
+# @param [Optional[String]] delay
 #   The value of the `ResetSec=` setting for the SystemD service.
 #   https://www.freedesktop.org/software/systemd/man/systemd.service.html#RestartSec=
 #

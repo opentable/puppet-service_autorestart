@@ -1,5 +1,8 @@
 require 'puppet/resource_api'
 
+# Manages the Recovery/Failure settings for a Windows Service
+# **Autorequires**:
+# Puppet will auto-require the service resource with the same 'name' as this resource.
 Puppet::ResourceApi.register_type(
   name: 'service_recovery',
   desc: <<-EOS,
