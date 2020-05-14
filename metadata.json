@@ -5,6 +5,8 @@
   "summary": "Puppet module to manage auto-restarting services (Windows and SystemD), and Windows Service Recovery options",
   "license": "Apache-2.0",
   "source": "https://github.com/EncoreTechnologies/puppet-service_autorestart",
+  "project_page": "https://github.com/EncoreTechnologies/puppet-service_autorestart",
+  "issues_url": "https://github.com/EncoreTechnologies/puppet-service_autorestart/issues",
   "dependencies": [
     {
       "name": "puppetlabs/inifile",
