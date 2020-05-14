@@ -14,6 +14,9 @@
 # @param [Boolean] autonotify_path
 #   Flag to enable creating an automatic notify relationship between the File[$path]
 #   and the Ini settings to modify the Restart parameters.
+#   Even if enabled, the relationships are protected with a guard, so if File[$path] is not
+#   defined the relationship will not be created. This prevents errors in environments where
+#   these resources aren't managed by Puppet
 #
 # @param [Boolean] autonotify_systemctl_daemon_reload
 #   Flag to enable creating an automatic notify relationship between the 'systemctl daemon-reload'
@@ -21,6 +24,10 @@
 #   The settings will be applied first and the notify the Class['systemd::systemctl::daemon_reload']
 #   of changes.
 #   This is enabled by default but probably only useful if you use the camptocamp/systemd module.
+#   Even if enabled, the relationships are protected with a guard, so if
+#   Class['systemd::systemctl::daemon_reload'] is not defined the relationship will not
+#   be created. This prevents errors in environments where these resources aren't managed by
+#   Puppet or the camptocamp/systemd module is not used.
 #
 # @example Basic usage
 #   service_autorestart::systemd { 'puppet': }
@@ -73,13 +80,13 @@ define service_autorestart::systemd (
   }
 
   # make sure the file exists before we modify it
-  if $autonotify_path {
+  if $autonotify_path and defined(File[$path]) {
     File[$path] ~> Ini_setting<| tag == 'service_autorestart' |>
   }
 
   # if we're using the camptocamp/systemd module, invoke systemctl daemon_reload
   # so systemd knows about our file changes
-  if $autonotify_systemctl_daemon_reload {
+  if $autonotify_systemctl_daemon_reload and defined(Class['systemd::systemctl::daemon_reload']) {
     Ini_setting<| tag == 'service_autorestart' |> ~> Class['systemd::systemctl::daemon_reload']
   }
 }
