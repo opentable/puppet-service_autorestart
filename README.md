@@ -1,4 +1,4 @@
-# service_control
+# service_autorestart
 
 Welcome to your new module. A short overview of the generated parts can be found in the PDK documentation at https://puppet.com/pdk/latest/pdk_generating_modules.html .
 
@@ -7,10 +7,10 @@ The README template below provides a starting point with details about what info
 #### Table of Contents
 
 1. [Description](#description)
-2. [Setup - The basics of getting started with service_control](#setup)
-    * [What service_control affects](#what-service_control-affects)
+2. [Setup - The basics of getting started with service_autorestart](#setup)
+    * [What service_autorestart affects](#what-service_autorestart-affects)
     * [Setup requirements](#setup-requirements)
-    * [Beginning with service_control](#beginning-with-service_control)
+    * [Beginning with service_autorestart](#beginning-with-service_autorestart)
 3. [Usage - Configuration options and additional functionality](#usage)
 4. [Limitations - OS compatibility, etc.](#limitations)
 5. [Development - Guide for contributing to the module](#development)
@@ -23,7 +23,7 @@ This should be a fairly short description helps the user decide if your module i
 
 ## Setup
 
-### What service_control affects **OPTIONAL**
+### What service_autorestart affects **OPTIONAL**
 
 If it's obvious what your module touches, you can skip this section. For example, folks can probably figure out that your mysql_instance module affects their MySQL instances.
 
@@ -39,7 +39,7 @@ TODO:
 - Resource (`puppetlabs/resource_api`) API if using Puppet 5 or older
 
 
-### Beginning with service_control
+### Beginning with service_autorestart
 
 The very basic steps needed for a user to get the module up and running. This can include setup steps, if necessary, or it can be an example of the most basic use of the module.
 
