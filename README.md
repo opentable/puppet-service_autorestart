@@ -8,10 +8,6 @@
 [![puppetmodule.info docs](http://www.puppetmodule.info/images/badge.png)](http://www.puppetmodule.info/m/encore-service_autorestart)
 
 
-Welcome to your new module. A short overview of the generated parts can be found in the PDK documentation at https://puppet.com/pdk/latest/pdk_generating_modules.html .
-
-The README template below provides a starting point with details about what information to include in your README.
-
 #### Table of Contents
 
 1. [Description](#description)
@@ -25,9 +21,10 @@ The README template below provides a starting point with details about what info
 
 ## Description
 
-Briefly tell users why they might want to use your module. Explain what your module does and what kind of problems users can solve with it.
-
-This should be a fairly short description helps the user decide if your module is what they want.
+This module solves the problem of configuring a service to automatically restart itself
+in case the service fails or dies. In Windows this is called "Service Recovery" or
+"Service Failure" and can be found in the Service configuration dialog under the "Recovery"
+tab. On Linux systems this is simply a parameter on the service unit file in SystemD.
 
 ## Setup
 
