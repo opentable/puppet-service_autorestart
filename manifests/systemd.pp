@@ -1,5 +1,8 @@
 # @summary Manages the auto-restart (aka service recovery) for a SystemD service.
 #
+# @param [String] path
+#   Path to the systemd service file for this service
+#
 # @param [String] value
 #   The value of the `Reset=` setting for the SystemD service.
 #   https://www.freedesktop.org/software/systemd/man/systemd.service.html#Restart=
@@ -27,9 +30,10 @@
 #   }
 #
 define service_autorestart::systemd (
-  String $path,
+  String $path  = "/usr/lib/systemd/system/${title}.service",
   String $value = 'on-failure',
   Optional[String] $delay = undef,
+  Optional[String] $autorequire_service = $title,
 ) {
   ini_setting { "systemd_${title}_restart":
     ensure            => present,
@@ -38,6 +42,7 @@ define service_autorestart::systemd (
     setting           => 'Restart',
     value             => $value,
     key_val_separator => '=',
+    tag               => 'service_autorestart',
   }
 
   if $delay {
@@ -48,6 +53,12 @@ define service_autorestart::systemd (
       setting           => 'RestartSec',
       value             => $delay,
       key_val_separator => '=',
+      tag               => 'service_autorestart',
     }
+  }
+
+  if $autorequire_service {
+    Service[$autorequire_service]
+    -> Ini_setting<| tag == 'service_autorestart' |>
   }
 }
