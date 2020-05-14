@@ -1,5 +1,13 @@
 # service_autorestart
 
+[![Build Status](https://travis-ci.org/EncoreTechnologies/puppet-service_autorestart.svg?branch=master)](https://travis-ci.org/EncoreTechnologies/puppet-service_autorestart)
+[![Puppet Forge Version](https://img.shields.io/puppetforge/v/encore/service_autorestart.svg)](https://forge.puppet.com/encore/service_autorestart)
+[![Puppet Forge Downloads](https://img.shields.io/puppetforge/dt/encore/service_autorestart.svg)](https://forge.puppet.com/encore/service_autorestart)
+[![Puppet Forge Score](https://img.shields.io/puppetforge/f/encore/service_autorestart.svg)](https://forge.puppet.com/encore/service_autorestart)
+[![Puppet PDK Version](https://img.shields.io/puppetforge/pdk-version/encore/service_autorestart.svg)](https://forge.puppet.com/encore/service_autorestart)
+[![puppetmodule.info docs](http://www.puppetmodule.info/images/badge.png)](http://www.puppetmodule.info/m/encore-service_autorestart)
+
+
 Welcome to your new module. A short overview of the generated parts can be found in the PDK documentation at https://puppet.com/pdk/latest/pdk_generating_modules.html .
 
 The README template below provides a starting point with details about what information to include in your README.
