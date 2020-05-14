@@ -11,13 +11,15 @@
 #### Table of Contents
 
 1. [Description](#description)
-2. [Setup - The basics of getting started with service_autorestart](#setup)
+2. [Setup](#setup)
     * [What service_autorestart affects](#what-service_autorestart-affects)
     * [Setup requirements](#setup-requirements)
     * [Beginning with service_autorestart](#beginning-with-service_autorestart)
-3. [Usage - Configuration options and additional functionality](#usage)
-4. [Limitations - OS compatibility, etc.](#limitations)
-5. [Development - Guide for contributing to the module](#development)
+3. [Usage](#usage)
+    * [Cross-platform autorestart](#cross-platform-autorestart)
+    * [SystemD autorestart](#systemd-autorestart)
+    * [Windows autorestart](#windows-autorestart)
+
 
 ## Description
 
@@ -28,65 +30,138 @@ tab. On Linux systems this is simply a parameter on the service unit file in Sys
 
 ## Setup
 
-### What service_autorestart affects **OPTIONAL**
+### What service_autorestart affects
 
-If it's obvious what your module touches, you can skip this section. For example, folks can probably figure out that your mysql_instance module affects their MySQL instances.
+On Linux, this module changes the SystemD unit file for the service specified, 
+adding the `Restart=` and `RestartSec=` parameters.
 
-If there's more that they should know about, though, this is the place to mention:
+On Windows, this module configures the Service Recovery (Service Failure) options using
+the CLI command `sc.exe`.
 
-* Files, packages, services, or operations that the module will alter, impact, or execute.
-* Dependencies that your module automatically installs.
-* Warnings or other important notices.
+### Setup Requirements
 
-### Setup Requirements **OPTIONAL**
+This module uses the new [Puppet Resource API](https://puppet.com/docs/puppet/latest/about_the_resource_api.html).
 
-TODO:
-- Resource (`puppetlabs/resource_api`) API if using Puppet 5 or older
+In Puppet `>= 6` the Resource API is included with the agent and server installations.
+
+If you're running Puppet `<= 5` then you'll need to install the Resource API using
+the [`puppetlabs/resource_api`](https://forge.puppet.com/puppetlabs/resource_api) module
+on the forge.
 
 
 ### Beginning with service_autorestart
 
-The very basic steps needed for a user to get the module up and running. This can include setup steps, if necessary, or it can be an example of the most basic use of the module.
+Basic usage to enable automatic restarts of a service in a cross-plaform way (works for 
+SystemD and Windows):
+```puppet
+service_autorestart::generic { 'myservice': }
+```
+
+This will declare the appropriate resources to configure service autorestart depending on
+your OS. It will also automatically declare the correct notify and require relationships
+depending on the OS so that things happen in the right order. Example: on Windows the `service`
+resource must exist. On Linux the SystemD unit file must exist and we must then invoke
+`systemctl daemon-reload` after making our change (requires the use of `camptocamp/sytemd` module
+by default).
 
 ## Usage
 
-Include usage examples for common use cases in the **Usage** section. Show your users how to use your module to solve problems, and be sure to include code examples. Include three to five examples of the most important or common tasks a user can accomplish with your module. Show users how to accomplish more complex tasks that involve different types, classes, and functions working in tandem.
+### Cross-platform autorestart
 
-## Reference
+The `service_autorestart::generic` resource provides basic configuration for enabling the
+automatic restart capability of a service when it fails. It is intentionally limited on
+options. If you need to tweak settings, please declare one of the OS specific resources.
 
-This section is deprecated. Instead, add reference information to your code as Puppet Strings comments, and then use Strings to generate a REFERENCE.md in your module. For details on how to add code comments and generate documentation with Strings, see the Puppet Strings [documentation](https://puppet.com/docs/puppet/latest/puppet_strings.html) and [style guide](https://puppet.com/docs/puppet/latest/puppet_strings_style.html)
-
-If you aren't ready to use Strings yet, manually create a REFERENCE.md in the root of your module directory and list out each of your module's classes, defined types, facts, functions, Puppet tasks, task plans, and resource types and providers, along with the parameters for each.
-
-For each element (class, defined type, function, and so on), list:
-
-  * The data type, if applicable.
-  * A description of what the element does.
-  * Valid values, if the data type doesn't make it obvious.
-  * Default value, if any.
-
-For example:
-
-```
-### `pet::cat`
-
-#### Parameters
-
-##### `meow`
-
-Enables vocalization in your cat. Valid options: 'string'.
-
-Default: 'medium-loud'.
+```puppet
+service_autorestart::generic { 'myservice': }
 ```
 
-## Limitations
+### SystemD autorestart
 
-In the Limitations section, list any incompatibilities, known issues, or other warnings.
+Basic usage, configure auto-restart for the Puppet service
+```puppet
+service_autorestart::systemd { 'puppet': }
+```
 
-## Development
+Customize the delay between restarts
+```puppet
+service_autorestart::systemd { 'myservice':
+  delay => '90s',
+}
+```
 
-In the Development section, tell other users the ground rules for contributing to your project and how they should submit their work.
+Customize the path and when action restarts
+```puppet
+service_autorestart::systemd { nginx':
+  path  => '/usr/local/lib/systemd/system/nginx.service',
+  value => 'on-abort',
+  delay => '90s',
+}
+```
 
-## Release Notes/Contributors/Etc. **Optional**
+Disable auto-notify relationships
+```puppet
+service_autorestart::systemd { 'puppet':
+  autonotify_path                    => false,
+  autonotify_systemctl_daemon_reload => false,
+}
+```
 
-If you aren't using changelog, put your release notes here (though you should consider using changelog). You can also add any additional sections you feel are necessary or important to include here. Please use the `## ` header.
+### Windows autorestart
+
+Basic usage, auto-restart the Puppet service
+```puppet
+service_autorestart::windows { 'puppet': }
+```
+
+Delay restarting the service for 60 seconds.
+```puppet
+service_autorestart::windows { 'puppet':
+  delay => 60000,  # delay is in milliseconds
+}
+```
+
+Reboot the computer when the service fails
+```puppet
+service_autorestart::windows { 'myservice':
+  action         => 'reboot',
+  reboot_message => 'service "myservice" failed, rebooting',
+}
+```
+
+Run a command when the service fails
+```puppet
+service_autorestart::windows { 'myservice':
+  action  => 'run_command',
+  command => 'msg "myservice failed, showing a popup so you know"',
+}
+```
+
+### Windows Low-level Service Recovery management
+
+Apart from the high-level defines for Windows auto-restarts, we also provide a resource
+`service_recovery` to control all aspects of Windows Service Recovery in a fine-grained way:
+
+```puppet
+service_recovery { 'myservice':
+  reboot_message  => "Rebooting because 'myservice' failed",
+  command         => 'msg "myservice failed, showing a popup so you know"',
+  failure_actions => [
+    {
+      action => 'restart',
+      delay  => 60000,
+    },
+    {
+      action => 'reboot',
+      delay  => 120000,
+    },
+    {
+      action => 'run_command',
+      delay  => 180000,
+    },
+  ],
+}
+```
+
+For more details on this resource and the options see [REFERENCE.md](REFERENCE.md).
+

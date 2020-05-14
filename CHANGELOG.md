@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 **Features**
 
+Initial implemention including the following types:
+* `service_autorestart::generic` - Single type to define a basic `service_autorestart::xxx` resource 
+     depending on what OS is in `$facts`
+* `service_autorestart::systemd` - Resource to manage autorestart capability on SystemD OSes.
+* `service_autorestart::windows` - Resource to manage autorestart capability on Windows.
+* `service_recovery`  - Resource to manage low-level configuration of Service Recovery on Windows.
+
 **Bugfixes**
 
 **Known Issues**
