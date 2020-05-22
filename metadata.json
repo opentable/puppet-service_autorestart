@@ -1,6 +1,6 @@
 {
   "name": "encore-service_autorestart",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Encore Technologies",
   "summary": "Puppet module to manage auto-restarting services (Windows and SystemD), and Windows Service Recovery options",
   "license": "Apache-2.0",
@@ -8,6 +8,10 @@
   "project_page": "https://github.com/EncoreTechnologies/puppet-service_autorestart",
   "issues_url": "https://github.com/EncoreTechnologies/puppet-service_autorestart/issues",
   "dependencies": [
+    {
+      "name": "puppetlabs/stdlib",
+      "version_requirement": ">= 4.0.0 < 7.0.0"
+    },
     {
       "name": "puppetlabs/inifile",
       "version_requirement": ">= 3.0.0 < 5.0.0"

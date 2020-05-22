@@ -4,12 +4,13 @@
 # to tweak settings,  you'll need to declare the `service_autorestart::windows`
 # or `service_autorestart::systemd` directly.
 define service_autorestart::generic () {
-  case $facts['os']['family'] {
+  case $facts['service_provider'] {
     'windows': {
       service_autorestart::windows { $title: }
     }
-    default: {
+    'systemd': {
       service_autorestart::systemd { $title: }
     }
+    default: {}
   }
 }

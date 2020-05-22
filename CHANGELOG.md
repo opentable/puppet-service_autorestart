@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.1.1
+
+**Bugfixes**
+
+* Change from using `$facts['os']['family']` to `$facts['service_provider']` from `puppetlabs/stdlib`.
+  This allows `service_autorestart::generic` to "do the right thing" when detecting systemd.
+
 ## Release 0.1.0
 
 **Features**
