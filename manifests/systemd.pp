@@ -51,7 +51,8 @@
 #   }
 #
 define service_autorestart::systemd (
-  String $path  = "/usr/lib/systemd/system/${title}.service",
+  String $systemd_dir  = lookup('service_autorestart::systemd_dir') |$k| { '/usr/lib/systemd/system' },
+  String $path  = "${systemd_dir}/${title}.service",
   String $value = 'on-failure',
   Optional[String] $delay = undef,
   Boolean $autonotify_path = true,

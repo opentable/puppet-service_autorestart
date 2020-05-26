@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.1.2
+
+**Bugfixes**
+
+* Fixed `service_autorestart::systemd` from throwing and error on Ubuntu because it was using a different
+  path for `.service` files. We now use module-level hiera data to default these locations.
+
 ## Release 0.1.1
 
 **Bugfixes**

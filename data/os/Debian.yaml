@@ -1,0 +1,2 @@
+---
+service_autorestart::systemd_dir: /lib/systemd/system
