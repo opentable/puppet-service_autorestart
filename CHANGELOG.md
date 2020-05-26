@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.1.3
+
+**Features**
+
+* PDK update to `1.18.0`
+
 ## Release 0.1.2
 
 **Bugfixes**
