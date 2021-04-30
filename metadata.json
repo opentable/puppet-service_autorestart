@@ -1,6 +1,6 @@
 {
   "name": "encore-service_autorestart",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "Encore Technologies",
   "summary": "Puppet module to manage auto-restarting services (Windows and SystemD), and Windows Service Recovery options",
   "license": "Apache-2.0",
