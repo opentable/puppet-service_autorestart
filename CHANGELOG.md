@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.1.4
+
+**Bugfixes**
+
+* Fixed `data/common.yaml` to contain a valid hash, fixing Puppet Server side warnings.
+
 ## Release 0.1.3
 
 **Features**
